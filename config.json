@@ -1,0 +1,21 @@
+{
+  "extension": {
+    ".cpp": {
+      "command": "cpp17",
+      "template": "default.cpp"
+    },
+    ".py": {
+      "command": "python3",
+      "template": "default.py"
+    }
+  },
+  "command": {
+    "cpp17": {
+      "compile": "g++ -O3 --std=c++17 {0} -o {1}",
+      "run": "{}"
+    },
+    "python3": {
+      "run": "python3 {}"
+    }
+  }
+}
