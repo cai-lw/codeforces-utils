@@ -1,18 +1,17 @@
 import os
 from shlex import quote
-from hashlib import sha1
 import subprocess
 from .command import Command
 from .common import tmp_base
-from .config import Config
+from .config import config
+from .runner import InterpretRunner, CompileRunner, JvmRunner
 from .sample import CodeforcesSampleFetcher
 
-
-def tokens_equal(a, b):
-    a_tokens = a.strip().split()
-    b_tokens = b.strip().split()
-    return a_tokens == b_tokens
-
+known_runners = {
+    'interpret': InterpretRunner,
+    'compile': CompileRunner,
+    'jvm': JvmRunner
+}
 
 class RunCommand(Command):
     def __init__(self):
@@ -31,36 +30,34 @@ class RunCommand(Command):
 
     @staticmethod
     def run(args):
-        root, ext = os.path.splitext(args.file)
-        if args.command is None:
-            compile_cmd, run_cmd = Config.get_default_command(ext)
+        ext = os.path.splitext(args.file)[1]
+        if args.command is not None:
+            runner_config = config.command[args.command]
         else:
-            compile_cmd, run_cmd = Config.get_command(args.command)
-        if not compile_cmd:
-            target = args.file
-        else:
-            with open(args.file, 'rb') as f:
-                target = os.path.join(tmp_base, sha1(f.read()).hexdigest())
-            if not os.path.exists(target):
-                subprocess.run(compile_cmd.format(quote(args.file), quote(target)), shell=True, check=True)
-        if args.test:
-            fetcher = CodeforcesSampleFetcher(args.test)
-            for i, (sample_in, sample_out) in enumerate(fetcher.get()):
-                result = subprocess.run(run_cmd.format(quote(target)), stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-                                        shell=True, input=sample_in, encoding='utf8')
-                verdict = 'AC'
-                if result.returncode != 0:
-                    verdict = 'RE'
-                elif not tokens_equal(result.stdout, sample_out):
-                    verdict = 'WA'
-                print('Test', i + 1, verdict)
-                print('Sample input:')
-                print(sample_in)
-                print('Sample output:')
-                print(sample_out)
-                print('Your output:')
-                print(result.stdout)
-                if result.stderr:
-                    print(result.stderr)
-        else:
-            subprocess.run(run_cmd.format(quote(target)), shell=True)
+            runner_config = config.command[config.extension[ext].command]
+        if runner_config.get('type', None) not in known_runners.keys():
+            raise ValueError('Command type unknown or unspecified')
+        with known_runners[runner_config.type](runner_config, args.file) as runner:
+            if args.test:
+                fetcher = CodeforcesSampleFetcher(args.test)
+                for i, (sample_in, sample_out) in enumerate(fetcher.get()):
+                    result = runner.run(sample_in)
+                    verdict = 'AC'
+                    if result.returncode != 0:
+                        verdict = 'RE'
+                    else:
+                        result_tokens = result.stdout.strip().split()
+                        sample_tokens = sample_out.strip().split()
+                        if result_tokens != sample_tokens:
+                            verdict = 'WA'
+                    print('Test', i + 1, verdict)
+                    print('Sample input:')
+                    print(sample_in)
+                    print('Sample output:')
+                    print(sample_out)
+                    print('Your output:')
+                    print(result.stdout)
+                    if result.stderr:
+                        print(result.stderr)
+            else:
+                runner.run()

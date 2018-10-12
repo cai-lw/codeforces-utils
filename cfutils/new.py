@@ -2,7 +2,7 @@ import os
 import shutil
 from warnings import warn
 from .command import Command
-from .config import Config
+from .config import config
 from .common import template_base
 
 
@@ -26,17 +26,17 @@ class NewCommand(Command):
     def run(args):
         if args.template is None:
             ext = os.path.splitext(args.file)[1]
-            template = Config.get_default_template(ext)
+            template = config.extension[ext].template
         else:
-            template = os.path.join(template_base, args.template)
-        if args.no_template:
-            template = ''
-        if not template:
-            open(args.file, 'w')
+            template = args.template
+        if args.no_template or template == '':
+            with open(args.file, 'w'):
+                pass
         else:
             template_path = os.path.join(template_base, template)
             if not os.path.exists(template_path):
                 warn('Template file {} does not exist. Creating empty file.'.format(template), RuntimeWarning)
-                open(args.file, 'w')
+                with open(args.file, 'w'):
+                    pass
             else:
                 shutil.copy(template_path, args.file)

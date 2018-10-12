@@ -7,15 +7,26 @@
     ".py": {
       "command": "python3",
       "template": "default.py"
+    },
+    ".java": {
+      "command": "java",
+      "template": "default.java"
     }
   },
   "command": {
     "cpp17": {
-      "compile": "g++ -O3 --std=c++17 {0} -o {1}",
-      "run": "{}"
+      "type": "compile",
+      "compile": "g++ -O3 --std=c++17 {} -o {}",
+      "execute": "{}"
     },
     "python3": {
-      "run": "python3 {}"
+      "type": "interpret",
+      "execute": "python3 {}"
+    },
+    "java": {
+      "type": "jvm",
+      "compile": "javac {}",
+      "execute": "java {}"
     }
   }
 }

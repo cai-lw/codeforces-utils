@@ -1,41 +1,37 @@
-import os
 import json
-from warnings import warn
-
-_config_file = os.path.expanduser('~/.cfutils/config.json')
-_config = None
+from .common import config_file
 
 
-def _get_config():
-    global _config
-    if _config is None:
-        with open(_config_file) as f:
-            _config = json.load(f)
-    return _config
+class ConfigDict:
+    def __init__(self, data):
+        self._data = data
+
+    def get(self, key, default=None):
+        return self._data.get(key, default)
+
+    def __getattr__(self, key):
+        return self._data[key]
+
+    def __getitem__(self, key):
+        return self._data[key]
 
 
-class Config:
-    def __init__(self):
-        pass
+class ConfigList:
+    def __init__(self, data=None):
+        self._data = data
 
-    @staticmethod
-    def get_default_template(ext):
-        obj = _get_config()['extension'].get(ext)
-        if obj is None or obj.get('template') is None:
-            warn('No template configuration for extension "{}". Creating blank file'.format(ext), RuntimeWarning)
-            return ''
-        return obj['template']
+    def __getitem__(self, i):
+        return self._data[i]
 
-    @staticmethod
-    def get_default_command(ext):
-        obj = _get_config()['extension'].get(ext)
-        if obj is None or obj.get('command') is None:
-            raise ValueError('No command configuration for extension "{}"'.format(ext))
-        return Config.get_command(obj['command'])
 
-    @staticmethod
-    def get_command(cmd):
-        obj = _get_config()['command'].get(cmd)
-        if obj is None or obj.get('run') is None:
-            raise ValueError('No command configuration named "{}".'.format(cmd))
-        return obj.get('compile', ''), obj['run']
+def configify(obj):
+    if isinstance(obj, dict):
+        return ConfigDict({k: configify(v) for k, v in obj.items()})
+    elif isinstance(obj, list):
+        return ConfigList([configify(o) for o in obj])
+    else:
+        return obj
+
+
+with open(config_file) as f:
+    config = configify(json.load(f))

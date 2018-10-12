@@ -5,7 +5,7 @@ from bs4 import BeautifulSoup
 from .common import tmp_base
 
 class SampleFetcher:
-    def __init__(self, problem_id):
+    def __init__(self):
         pass
 
     def get(self):
@@ -14,7 +14,7 @@ class SampleFetcher:
 
 class CodeforcesSampleFetcher(SampleFetcher):
     def __init__(self, problem_id):
-        super().__init__(problem_id)
+        super().__init__()
         self._url = 'https://codeforces.com/contest/{}/problem/{}'.format(problem_id[:-1], problem_id[-1])
         self._cache_file = os.path.join(tmp_base, 'CF' + problem_id + '.json')
 
